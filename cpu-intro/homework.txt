@@ -1,0 +1,77 @@
+1. Run process-run.pywith the following flags: -l 5:100,5:100.
+What should the CPU utilization be (e.g., the percent of time the
+CPU is in use?) Why do you know this? Use the -c and -p flags to
+see if you were right.
+
+100%
+
+2. Now run with these flags: ./process-run.py -l 4:100,1:0.
+These flags specify one process with 4 instructions (all to use the
+CPU), and one that simply issues an I/O and waits for it to be done.
+How long does it take to complete both processes? Use -c and -p
+to find out if you were right.
+
+Every IO issued will create 7 clock ticks, with 5 as IO ticks, 2 as CPU ticks
+for IO (open and close), therefore CPU utilization time is 6 / (4 + 7) = 54.55%.
+
+3. Switch the order of the processes: -l 1:0,4:100. What happens
+now? Does switching the order matter? Why? (As always, use -c
+and -p to see if you were right)
+
+Once the IO is issued, it transitions into BLOCKED state, and the control is
+transferred to the other process, where CPU runs are executed. The order matters
+in this case, because when the IO is waiting, cpu tranfers the execution power
+to another READY process. Therefore, the total time is 7, and CPU busy time is
+6, thus creates a higher utilization rate at 85.71%.
+
+4. We’ll now explore some of the other flags. One important flag is
+-S, which determines how the system reacts when a process issues
+an I/O. With the flag set to SWITCH ON END, the system
+will NOT switch to another process while one is doing I/O, instead
+waiting until the process is completely finished. What happens
+when you run the following two processes (-l 1:0,4:100
+-c -S SWITCH ON END), one doing I/O and the other doing CPU
+work?
+
+It gives what we had in problem 2, becuase this time the CPU does not smartly
+walk away from the blocked IO.
+
+5. Now, run the same processes, but with the switching behavior set
+to switch to another process whenever one is WAITING for I/O (-l
+1:0,4:100 -c -S SWITCH ON IO).What happens now? Use -c
+and -p to confirm that you are right.
+
+Same as problem 3.
+
+6. One other important behavior is what to do when an I/O completes.
+With -I IO RUN LATER, when an I/O completes, the process
+that issued it is not necessarily run right away; rather,whatever
+was running at the time keeps running. What happens when you
+run this combination of processes? (Run ./process-run.py -l
+3:0,5:100,5:100,5:100 -S SWITCH ON IO -I IO RUN LATER
+-c -p) Are system resources being effectively utilized?
+
+After the first IO instruction issued, the CPU will go ahead and run other
+non-blocking processes. After all non-blocking processes are run (which is what
+the command specifies), the IO-blocking process will take control back and get
+blocked until everything is done. System resources are not being effectively
+utilized here.
+
+7. Now run the same processes, but with -I IO RUN IMMEDIATE set,
+which immediately runs the process that issued the I/O. How does
+this behavior differ? Why might running a process that just completed
+an I/O again be a good idea?
+
+It runs next IO-blocking instruction immediately once the last IO-blocking one
+is done. Higher utilization rate. Because it may let as much as IO-blocking
+instructions run in the background when the CPU is actively processing other
+non-blocking tasks.
+
+8. Now runwith some randomly generated processes: -s 1 -l 3:50,3:50
+or -s 2 -l 3:50,3:50 or -s 3 -l 3:50,3:50. See if you can
+predict how the trace will turn out. What happens when you use
+the flag -I IO RUN IMMEDIATE vs. -I IO RUN LATER?What happens
+when you use -S SWITCH ON IO vs. -S SWITCH ON END?
+
+Seems that IO_RUN_IMMEDIATE combining with SWITCH_ON_IO works the best for
+higher utilization rate.
